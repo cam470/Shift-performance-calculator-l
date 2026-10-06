@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#111827">
+<title>Shift Performance Calculator</title>
+<style>
+:root{
+  --bg:#f3f4f6;--card:#fff;--text:#111827;--muted:#6b7280;--border:#e5e7eb;
+  --accent:#2563eb;--accent-soft:#eff6ff;--good:#15803d;--bad:#b91c1c;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text)}
+.container{max-width:900px;margin:0 auto;padding:24px 16px 40px}
+header{margin-bottom:20px}
+h1{margin:0;font-size:30px;letter-spacing:-.5px}
+.subtitle{margin:6px 0 0;color:var(--muted);font-size:14px}
+.shiftbar{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.shiftbar button{border:1px solid var(--border);background:var(--card);padding:10px 18px;border-radius:999px;font-weight:700;cursor:pointer}
+.shiftbar button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:18px;margin-top:14px}
+.card h2{font-size:18px;margin:0 0 4px}
+.card .desc{font-size:13px;color:var(--muted);margin:0 0 16px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+label{display:block;font-size:13px;font-weight:700;margin-bottom:6px}
+input{width:100%;padding:12px;border:1px solid var(--border);border-radius:10px;font-size:16px;background:#fff;color:var(--text)}
+input:focus{outline:2px solid var(--accent);outline-offset:1px}
+.table{margin-top:4px}
+.row{display:grid;grid-template-columns:1.35fr 1fr 1fr 1fr;gap:8px;align-items:center;padding:12px 8px;border-top:1px solid var(--border)}
+.head{border-top:0;padding-top:0;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.05em;font-weight:800}
+.metric{font-weight:750}.value{font-variant-numeric:tabular-nums}
+.hero{background:var(--accent-soft);border:1px solid #bfdbfe;border-radius:16px;text-align:center;padding:20px;margin-top:14px}
+.hero .label{color:var(--muted);font-size:13px}.hero .number{font-size:42px;font-weight:850;line-height:1.05;margin:4px 0}
+.status{font-size:13px;font-weight:700}
+.results{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px}
+.result{border:1px solid var(--border);border-radius:12px;padding:13px}
+.result span{display:block;color:var(--muted);font-size:12px;margin-bottom:5px}
+.result strong{font-size:20px}
+.actions{display:flex;justify-content:flex-end;margin-top:14px}
+.reset{border:1px solid var(--border);background:#fff;padding:10px 14px;border-radius:10px;font-weight:700;cursor:pointer}
+.note{font-size:12px;color:var(--muted);line-height:1.5;margin-top:14px}
+.good{color:var(--good)}.bad{color:var(--bad)}
+@media(max-width:620px){
+ .container{padding:18px 12px 30px}h1{font-size:25px}
+ .grid{grid-template-columns:1fr}.results{grid-template-columns:1fr 1fr}
+ .row{grid-template-columns:1.2fr 1fr 1fr 1fr;font-size:14px}
+ .head{font-size:9px}
+}
+@media(max-width:400px){.results{grid-template-columns:1fr}.row{font-size:13px}}
+</style>
+</head>
+<body>
+<main class="container">
+<header>
+<h1>Shift Performance Calculator</h1>
+<p class="subtitle">Plan the shift first. Monitor FTDS separately during the shift.</p>
+<div class="shiftbar" aria-label="Shift">
+<button type="button" data-shift="AM">AM</button>
+<button type="button" data-shift="PM" class="active">PM</button>
+</div>
+</header>
+
+<section class="card">
+<h2 id="planningTitle">PM — Shift Planning</h2>
+<p class="desc">Enter the figures available at the start of the shift.</p>
+<div class="grid">
+<div><label for="planVol">Planned Volume</label><input id="planVol" type="number" min="0" step="1" placeholder="757"></div>
+<div><label for="actualVol">Actual Volume</label><input id="actualVol" type="number" min="0" step="1" placeholder="421"></div>
+<div><label for="planDrivers">Planned Capacity / Drivers</label><input id="planDrivers" type="number" min="0" step="1" placeholder="13"></div>
+<div><label for="actualDrivers">Actual Capacity / Drivers</label><input id="actualDrivers" type="number" min="0" step="1" placeholder="13"></div>
+</div>
+</section>
+
+<section class="card">
+<h2>Shift Results</h2>
+<p class="desc">PPR is calculated automatically from volume ÷ drivers.</p>
+<div class="table">
+<div class="row head"><div>Metric</div><div>Planned</div><div>Actual</div><div>Variance</div></div>
+<div class="row"><div class="metric">Volume</div><div class="value" id="planVolOut">—</div><div class="value" id="actualVolOut">—</div><div class="value" id="volVar">—</div></div>
+<div class="row"><div class="metric">PPR</div><div class="value" id="planPpr">—</div><div class="value" id="actualPpr">—</div><div class="value" id="pprVar">—</div></div>
+<div class="row"><div class="metric">Capacity</div><div class="value" id="planDriversOut">—</div><div class="value" id="actualDriversOut">—</div><div class="value" id="driverVar">—</div></div>
+</div>
+</section>
+
+<section class="card">
+<h2>FTDS — Live Performance</h2>
+<p class="desc">Update these figures during the shift as deliveries change.</p>
+<div class="grid">
+<div><label for="ftdsVol">FTDS Actual Volume</label><input id="ftdsVol" type="number" min="0" step="1" placeholder="421"></div>
+<div><label for="rejected">Rejected Parcels</label><input id="rejected" type="number" min="0" step="1" placeholder="0"></div>
+<div><label for="redeliveries">Redeliveries</label><input id="redeliveries" type="number" min="0" step="1" placeholder="0"></div>
+</div>
+<div class="hero">
+<div class="label">FTDS</div>
+<div class="number" id="ftds">—</div>
+<div class="status" id="ftdsStatus">Enter FTDS figures</div>
+</div>
+<div class="results">
+<div class="result"><span>Eligible Volume</span><strong id="eligible">—</strong></div>
+<div class="result"><span>First-Time Deliveries</span><strong id="first">—</strong></div>
+<div class="result"><span>Bridge to 100%</span><strong id="bridge">—</strong></div>
+<div class="result"><span>Max Redeliveries @ 98%</span><strong id="maxRedeliveries">—</strong></div>
+<div class="result"><span>Further Redeliveries Allowed</span><strong id="remaining">—</strong></div>
+<div class="result"><span>Margin vs 98%</span><strong id="margin">—</strong></div>
+</div>
+</section>
+
+<div class="actions"><button class="reset" id="reset" type="button">Reset calculator</button></div>
+<p class="note">Variance = Actual − Planned. PPR = Volume ÷ Drivers. FTDS excludes rejected parcels. FTDS = (Eligible Volume − Redeliveries) ÷ Eligible Volume. The redelivery allowance is the maximum whole-number redeliveries that keeps FTDS at or above 98%.</p>
+</main>
+
+<script>
+(function(){
+ const $=id=>document.getElementById(id);
+ const ids=["planVol","actualVol","planDrivers","actualDrivers","ftdsVol","rejected","redeliveries"];
+ const n=id=>Number($(id).value);
+ const fmt=(x,d=1)=>Number.isFinite(x)?x.toFixed(d):"—";
+ function calc(){
+  const pv=n("planVol"),av=n("actualVol"),pd=n("planDrivers"),ad=n("actualDrivers");
+  const fv=n("ftdsVol"),rej=Math.max(0,n("rejected")),red=Math.max(0,n("redeliveries"));
+  $("planVolOut").textContent=pv>0?pv.toFixed(0):"—";
+  $("actualVolOut").textContent=av>0?av.toFixed(0):"—";
+  $("volVar").textContent=pv>0?fmt(av-pv,0):"—";
+  const pp=pv>0&&pd>0?pv/pd:NaN, ap=av>0&&ad>0?av/ad:NaN;
+  $("planPpr").textContent=fmt(pp); $("actualPpr").textContent=fmt(ap);
+  $("pprVar").textContent=Number.isFinite(pp)&&Number.isFinite(ap)?fmt(ap-pp):"—";
+  $("planDriversOut").textContent=pd>0?pd.toFixed(0):"—";
+  $("actualDriversOut").textContent=ad>0?ad.toFixed(0):"—";
+  $("driverVar").textContent=pd>0?fmt(ad-pd,0):"—";
+  const eligible=fv>0?Math.max(0,fv-rej):NaN;
+  const first=Number.isFinite(eligible)?eligible-red:NaN;
+  const ftds=Number.isFinite(eligible)&&eligible>0?first/eligible*100:NaN;
+  $("eligible").textContent=Number.isFinite(eligible)?eligible.toFixed(0):"—";
+  $("first").textContent=Number.isFinite(first)?first.toFixed(0):"—";
+  $("ftds").textContent=Number.isFinite(ftds)?fmt(ftds,2)+"%":"—";
+  $("bridge").textContent=Number.isFinite(ftds)?fmt(100-ftds,2)+"%":"—";
+  if(Number.isFinite(ftds)){
+   $("ftdsStatus").textContent=ftds>=98?"At or above 98% target":"Below 98% target";
+   $("ftdsStatus").className="status "+(ftds>=98?"good":"bad");
+  }else{$("ftdsStatus").textContent="Enter FTDS figures";$("ftdsStatus").className="status";}
+  if(Number.isFinite(eligible)&&eligible>0){
+   const max=Math.floor(eligible*0.02+1e-9);
+   $("maxRedeliveries").textContent=max;
+   $("remaining").textContent=Math.max(0,max-red);
+   $("margin").textContent=fmt(ftds-98,2)+"%";
+  }else{
+   $("maxRedeliveries").textContent="—";$("remaining").textContent="—";$("margin").textContent="—";
+  }
+ }
+ ids.forEach(id=>$(id).addEventListener("input",calc));
+ document.querySelectorAll("[data-shift]").forEach(btn=>btn.addEventListener("click",()=>{
+  document.querySelectorAll("[data-shift]").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  $("planningTitle").textContent=btn.dataset.shift+" — Shift Planning";
+ }));
+ $("reset").addEventListener("click",()=>{ids.forEach(id=>$(id).value="");calc()});
+ calc();
+})();
+</script>
+</body>
+</html>
